@@ -1,5 +1,8 @@
 from pyspark import SparkConf, SparkContext
 
+HDFS_RAW_DATA="hdfs://localhost:9000/raw/u.data"
+#HDFS_RAW_ITEM="hdfs://localhost:9000/raw/u.item"
+
 def loadMovieNames():
     movieNames = {}
     with open("ml-100k/u.item", encoding='ascii', errors='ignore') as f:
@@ -22,7 +25,7 @@ if __name__ == "__main__":
     movieNames = loadMovieNames()
 
     # Load up the raw u.data file
-    lines = sc.textFile("hdfs:///user/maria_dev/ml-100k/u.data")
+    lines = sc.textFile(HDFS_RAW_DATA)
 
     # Convert to (movieID, (rating, 1.0))
     movieRatings = lines.map(parseInput)
@@ -31,13 +34,13 @@ if __name__ == "__main__":
     ratingTotalsAndCount = movieRatings.reduceByKey(lambda movie1, movie2: ( movie1[0] + movie2[0], movie1[1] + movie2[1] ) )
 
     # Map to (movieID, averageRating)
-    averageRatings = ratingTotalsAndCount.mapValues(lambda totalAndCount : totalAndCount[0] / totalAndCount[1])
+    averageRatings = ratingTotalsAndCount.mapValues(lambda totalAndCount : (totalAndCount[0] / totalAndCount[1]) )
 
     # Sort by average rating
     sortedMovies = averageRatings.sortBy(lambda x: x[1])
 
     # Take the top 10 results
-    results = sortedMovies.take(10)
+    results = sortedMovies.take(20) # 이때 python 객체됩니다.
 
     # Print them out:
     for result in results:
